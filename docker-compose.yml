@@ -1,10 +1,11 @@
 services:
   db:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_DB: critpath
       POSTGRES_USER: critpath
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-critpath-local}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -12,24 +13,82 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+      start_period: 10s
+    networks:
+      - internal
+
   api:
     build: ./backend
+    restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql+psycopg://critpath:${POSTGRES_PASSWORD:-critpath-local}@db:5432/critpath
-      JWT_SECRET: ${JWT_SECRET:-replace-this-development-secret}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
-      SEED_DEMO: ${SEED_DEMO:-true}
+      DATABASE_URL: postgresql+psycopg://critpath:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/critpath
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-true}
+      SEED_DEMO: ${SEED_DEMO:-false}
       DEMO_EMAIL: ${DEMO_EMAIL:-demo@critpath.io}
       DEMO_PASSWORD: ${DEMO_PASSWORD:-critpath-demo}
-    ports: ["8000:8000"]
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/api/health', timeout=3)",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - internal
+
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: /api
+        VITE_ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-true}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - internal
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
     environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000/api}
-    ports: ["5173:5173"]
-    depends_on: [api]
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env to :80 for local use or your public DNS name}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      frontend:
+        condition: service_healthy
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+
 volumes:
   postgres_data:
+  caddy_data:
+  caddy_config:
