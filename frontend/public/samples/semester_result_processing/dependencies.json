@@ -1,0 +1,15 @@
+{
+  "Ingest marks": [],
+  "Validate grades": [
+    "Ingest marks"
+  ],
+  "Calculate GPA": [
+    "Validate grades"
+  ],
+  "Apply moderation": [
+    "Calculate GPA"
+  ],
+  "Publish results": [
+    "Apply moderation"
+  ]
+}

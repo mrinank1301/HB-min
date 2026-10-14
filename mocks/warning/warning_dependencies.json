@@ -1,0 +1,15 @@
+{
+  "Load applications": [],
+  "Match answer books": [
+    "Load applications"
+  ],
+  "Regrade papers": [
+    "Match answer books"
+  ],
+  "Verify changes": [
+    "Regrade papers"
+  ],
+  "Update ledger": [
+    "Verify changes"
+  ]
+}

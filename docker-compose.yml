@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: critpath
+      POSTGRES_USER: critpath
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-critpath-local}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U critpath -d critpath"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://critpath:${POSTGRES_PASSWORD:-critpath-local}@db:5432/critpath
+      JWT_SECRET: ${JWT_SECRET:-replace-this-development-secret}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+      SEED_DEMO: ${SEED_DEMO:-true}
+      DEMO_EMAIL: ${DEMO_EMAIL:-demo@critpath.io}
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-critpath-demo}
+    ports: ["8000:8000"]
+    depends_on:
+      db:
+        condition: service_healthy
+  frontend:
+    build: ./frontend
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000/api}
+    ports: ["5173:5173"]
+    depends_on: [api]
+volumes:
+  postgres_data:

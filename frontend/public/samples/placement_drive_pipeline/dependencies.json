@@ -1,0 +1,15 @@
+{
+  "Import applicants": [],
+  "Parse resumes": [
+    "Import applicants"
+  ],
+  "Score candidates": [
+    "Parse resumes"
+  ],
+  "Match roles": [
+    "Score candidates"
+  ],
+  "Send shortlist": [
+    "Match roles"
+  ]
+}

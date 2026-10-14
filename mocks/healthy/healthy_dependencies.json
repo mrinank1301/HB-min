@@ -1,0 +1,16 @@
+{
+  "Extract attendance": [],
+  "Validate records": [
+    "Extract attendance"
+  ],
+  "Normalize IDs": [
+    "Extract attendance"
+  ],
+  "Sync to SIS": [
+    "Validate records",
+    "Normalize IDs"
+  ],
+  "Publish report": [
+    "Sync to SIS"
+  ]
+}
